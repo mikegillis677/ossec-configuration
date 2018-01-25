@@ -1,0 +1,3 @@
+---
+- name: restart ossec
+  service: name=ossec-hids enabled=yes state=restarted

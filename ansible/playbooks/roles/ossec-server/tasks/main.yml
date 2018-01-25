@@ -1,0 +1,40 @@
+---
+- name: Install Atomic Repo
+  yum_repository:
+    name: atomic
+    description: CentOS / Red Hat Enterprise Linux $releasever - atomic
+    enabled: false
+    mirrorlist: http://updates.atomicorp.com/channels/mirrorlist/atomic/centos-$releasever-$basearch
+    protect: false
+    gpgcheck: true
+    gpgkey: https://www.atomicorp.com/RPM-GPG-KEY.art.txt
+            https://www.atomicorp.com/RPM-GPG-KEY.atomicorp.txt
+
+- name: Install OSSEC server
+  yum: name=ossec-hids-server state=latest enablerepo=atomic
+  notify: restart ossec server
+
+- name: Setup OSSEC server config
+  lineinfile: dest=/var/ossec/etc/ossec-server.conf regexp="email_notification" line="    <email_notification>no</email_notification>"
+  notify: restart ossec server
+
+- name: Copy SSL Cert and Key
+  copy: src=ossec/{{ item }} dest=/var/ossec/etc/{{ item }}
+  with_items:
+    - sslmanager.cert
+    - sslmanager.key
+  notify: restart ossec server
+
+- name: Open ports for OSSEC
+  iptables:
+    action: insert
+    chain: INPUT
+    jump: ACCEPT
+    protocol: "{{ item.protocol }}"
+    match: "{{ item.protocol }}"
+    destination_port: "{{ item.port }}"
+  with_items:
+    - protocol: tcp
+      port: 1515
+    - protocol: udp
+      port: 1514

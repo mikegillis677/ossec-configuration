@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "ossec-intrusions": {
+      "command": "run-nagios-plugin.php ossec-alert https://logs:Password1@logs.example.com:9200 -l 'Intrusions'",
+      "subscribers": [
+        "sensu"
+      ],
+      "interval": 900,
+      "handle_when": {
+        "occurrences": 2,
+        "reset": 3600
+      },
+      "handlers": ["email", "slack"]
+    }
+  }
+}
+

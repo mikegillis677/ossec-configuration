@@ -1,0 +1,45 @@
+---
+- become: true
+  block:
+    - name: Install Atomic Repo
+      yum_repository:
+        name: atomic
+        description: CentOS / Red Hat Enterprise Linux $releasever - atomic
+        enabled: false
+        mirrorlist: http://updates.atomicorp.com/channels/mirrorlist/atomic/centos-$releasever-$basearch
+        protect: false
+        gpgcheck: true
+        gpgkey: https://www.atomicorp.com/RPM-GPG-KEY.art.txt
+                https://www.atomicorp.com/RPM-GPG-KEY.atomicorp.txt
+
+    - name: Install OSSEC
+      yum: name=ossec-hids-agent state=latest enablerepo=atomic
+
+    - name: Update OSSEC server IP
+      replace:
+        dest: /var/ossec/etc/ossec-agent.conf
+        regexp: '^(\s*)<server-ip>(?!{{ ossec_server_ip|regex_escape }}).+</server-ip>$'
+        replace: '\1<server-ip>{{ ossec_server_ip }}</server-ip>'
+      notify: restart ossec
+
+    # Only needed for pre-ansible installs.
+    - name: Symlink ossec.conf to ossec-agent.conf
+      file:
+        path: /var/ossec/etc/ossec.conf
+        src: ossec-agent.conf
+        state: link
+        force: true
+      notify: restart ossec
+
+    - name: Copy register script to run at boot
+      copy:
+        src: register.sh
+        dest: /var/lib/cloud/scripts/per-boot/ossec_register.sh
+        mode: 755
+      notify: restart ossec
+
+    - name: Run register script now
+      command: /var/lib/cloud/scripts/per-boot/ossec_register.sh
+      register: result
+      changed_when: "'Already registered' not in result.stdout"
+      notify: restart ossec

@@ -1,0 +1,53 @@
+{
+	"size": 0,
+	"aggs": {
+		"1": {
+			"date_histogram": {
+				"field": "@timestamp",
+				"interval": "30s",
+				"time_zone": "America/Chicago",
+				"min_doc_count": 1
+			}
+		}
+	},
+	"highlight": {
+		"pre_tags": [
+			"@kibana-highlighted-field@"
+		],
+		"post_tags": [
+			"@/kibana-highlighted-field@"
+		],
+		"fields": {
+			"*": {}
+		},
+		"fragment_size": 2147483647
+	},
+	"query": {
+		"bool": {
+			"must": [
+				{
+					"query_string": {
+						"query": "type:OSSEC AND alert_level: [13 TO 15]",
+						"analyze_wildcard": true
+					}
+				},
+				{
+					"query_string": {
+						"query": "*",
+						"analyze_wildcard": true
+					}
+				},
+				{
+					"range": {
+						"@timestamp": {
+							"gte": {{startTime}},
+							"lte": {{endTime}},
+							"format": "epoch_millis"
+						}
+					}
+				}
+			],
+			"must_not": []
+		}
+	}
+}
